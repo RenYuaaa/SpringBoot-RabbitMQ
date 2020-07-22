@@ -1,0 +1,12 @@
+server:
+  port: 8001
+
+spring:
+  application:
+    name: rabbit-consumer
+  rabbitmq:
+    host: 39.107.94.251
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
