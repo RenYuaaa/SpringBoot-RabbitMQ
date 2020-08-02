@@ -1,9 +1,16 @@
 package com.ren.rabbitmq.config;
 
+import com.rabbitmq.client.Channel;
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.amqp.rabbit.listener.api.ChannelAwareMessageListener;
+import org.springframework.amqp.support.ConsumerTagStrategy;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.UUID;
 
 /**
  * @author : renjiahui
@@ -53,5 +60,32 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(queue).to(exchange).with(ROUTINGKEY_SMS).noargs();
     }
 
+    //简单消息监听容器
+    @Bean
+    public SimpleMessageListenerContainer messageListenerContainer(ConnectionFactory connectionFactory) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(connectionFactory);
+
+        //可以同时设置多个队列
+        container.setQueues(QUEUE_INFORM_EMAIL(), QUEUE_INFORM_SMS());
+        container.setConcurrentConsumers(1);
+        container.setMaxConcurrentConsumers(5);
+        container.setDefaultRequeueRejected(false);
+        container.setAcknowledgeMode(AcknowledgeMode.AUTO);
+        container.setConsumerTagStrategy(new ConsumerTagStrategy() {
+            @Override
+            public String createConsumerTag(String queue) {
+                return queue + "_" + UUID.randomUUID().toString();
+            }
+        });
+        container.setMessageListener(new ChannelAwareMessageListener() {
+            @Override
+            public void onMessage(Message message, Channel channel) throws Exception {
+                 String msg = new String(message.getBody());
+                System.out.println("---------- 消费者：" + msg);
+            }
+        });
+
+        return container;
+    }
 
 }
